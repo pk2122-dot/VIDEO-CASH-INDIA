@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -56,26 +55,11 @@ class _MainScreenState extends State<MainScreen> {
           setState(() => selected = index);
         },
         destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.play_circle_outline),
-            label: 'Shorts',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.add_circle_outline),
-            label: 'Upload',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            label: 'Wallet',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: 'Profile',
-          ),
+          NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
+          NavigationDestination(icon: Icon(Icons.play_circle_outline), label: 'Shorts'),
+          NavigationDestination(icon: Icon(Icons.add_circle_outline), label: 'Upload'),
+          NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Wallet'),
+          NavigationDestination(icon: Icon(Icons.person_outline), label: 'Profile'),
         ],
       ),
     );
@@ -88,10 +72,8 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Text(
-        'Welcome to Video Cash India',
-        style: TextStyle(fontSize: 24),
-      ),
+      child: Text('Welcome to Video Cash India',
+          style: TextStyle(fontSize: 24)),
     );
   }
 }
@@ -101,9 +83,7 @@ class ShortsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Short Videos'),
-    );
+    return const Center(child: Text('Short Videos'));
   }
 }
 
@@ -116,8 +96,8 @@ class UploadPage extends StatefulWidget {
 
 class _UploadPageState extends State<UploadPage> {
   final ImagePicker picker = ImagePicker();
-
   VideoPlayerController? controller;
+  String? videoName;
   bool loading = false;
 
   Future<void> selectVideo() async {
@@ -128,16 +108,10 @@ class _UploadPageState extends State<UploadPage> {
 
       if (file == null) return;
 
-      setState(() {
-        loading = true;
-      });
-
+      setState(() => loading = true);
       await controller?.dispose();
 
-      final newController = VideoPlayerController.file(
-        File(file.path),
-      );
-
+      final newController = VideoPlayerController.file(File(file.path));
       await newController.initialize();
 
       if (!mounted) {
@@ -147,21 +121,24 @@ class _UploadPageState extends State<UploadPage> {
 
       setState(() {
         controller = newController;
+        videoName = file.name;
         loading = false;
       });
     } catch (e) {
       if (!mounted) return;
-
-      setState(() {
-        loading = false;
-      });
-
+      setState(() => loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Video error: $e'),
-        ),
+        SnackBar(content: Text('Video error: $e')),
       );
     }
+  }
+
+  void removeVideo() {
+    controller?.dispose();
+    setState(() {
+      controller = null;
+      videoName = null;
+    });
   }
 
   @override
@@ -172,70 +149,91 @@ class _UploadPageState extends State<UploadPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.cloud_upload_outlined,
-              size: 75,
-              color: Colors.purpleAccent,
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Upload Your Video',
-              style: TextStyle(
-                fontSize: 23,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 10),
-            const Text('Share your creativity with the world.'),
-            const SizedBox(height: 22),
-            ElevatedButton.icon(
+    final ready = controller != null &&
+        controller!.value.isInitialized;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          const SizedBox(height: 25),
+          const Icon(Icons.cloud_upload_outlined,
+              size: 75, color: Colors.purpleAccent),
+          const SizedBox(height: 18),
+          const Text('Upload Your Video',
+              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          const Text('Share your creativity with the world.'),
+          const SizedBox(height: 25),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
               onPressed: loading ? null : selectVideo,
               icon: const Icon(Icons.video_library),
-              label: const Text('Select Video'),
+              label: const Text('Select Video from Gallery'),
             ),
-            if (loading) ...[
-              const SizedBox(height: 20),
-              const CircularProgressIndicator(),
-              const Text('Loading video...'),
-            ],
-            if (controller != null &&
-                controller!.value.isInitialized) ...[
-              const SizedBox(height: 25),
-              AspectRatio(
+          ),
+          if (loading) ...[
+            const SizedBox(height: 20),
+            const CircularProgressIndicator(),
+            const Text('Loading video...'),
+          ],
+          if (ready) ...[
+            const SizedBox(height: 20),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: AspectRatio(
                 aspectRatio: controller!.value.aspectRatio,
                 child: VideoPlayer(controller!),
               ),
-              const SizedBox(height: 10),
-              IconButton(
-                iconSize: 45,
-                icon: Icon(
-                  controller!.value.isPlaying
+            ),
+            const SizedBox(height: 12),
+            Text(videoName ?? 'Selected Video'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  iconSize: 45,
+                  icon: Icon(controller!.value.isPlaying
                       ? Icons.pause_circle
-                      : Icons.play_circle,
+                      : Icons.play_circle),
+                  onPressed: () {
+                    setState(() {
+                      if (controller!.value.isPlaying) {
+                        controller!.pause();
+                      } else {
+                        controller!.play();
+                      }
+                    });
+                  },
                 ),
+                IconButton(
+                  iconSize: 35,
+                  icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                  onPressed: removeVideo,
+                ),
+              ],
+            ),
+            const SizedBox(height: 15),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
                 onPressed: () {
-                  setState(() {
-                    if (controller!.value.isPlaying) {
-                      controller!.pause();
-                    } else {
-                      controller!.play();
-                    }
-                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Server upload will be activated later.'),
+                    ),
+                  );
                 },
+                icon: const Icon(Icons.upload),
+                label: const Text('Upload Video'),
               ),
-              const Text(
-                'Video Preview Ready',
-                style: TextStyle(color: Colors.greenAccent),
-              ),
-            ],
+            ),
+            const SizedBox(height: 10),
+            const Text('Video Preview Ready',
+                style: TextStyle(color: Colors.greenAccent)),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -253,12 +251,10 @@ class WalletPage extends StatelessWidget {
           Icon(Icons.account_balance_wallet,
               size: 65, color: Colors.purpleAccent),
           SizedBox(height: 15),
-          Text('My Wallet',
-              style: TextStyle(fontSize: 25)),
+          Text('My Wallet', style: TextStyle(fontSize: 25)),
           SizedBox(height: 12),
           Text('Available Balance'),
-          Text('₹ 0.00',
-              style: TextStyle(fontSize: 35)),
+          Text('₹ 0.00', style: TextStyle(fontSize: 35)),
           SizedBox(height: 10),
           Text('Earnings and withdrawals are not active yet.'),
         ],
@@ -276,13 +272,9 @@ class ProfilePage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircleAvatar(
-            radius: 42,
-            child: Icon(Icons.person, size: 48),
-          ),
+          CircleAvatar(radius: 42, child: Icon(Icons.person, size: 48)),
           SizedBox(height: 15),
-          Text('My Profile',
-              style: TextStyle(fontSize: 25)),
+          Text('My Profile', style: TextStyle(fontSize: 25)),
           Text('Welcome to Video Cash India'),
           SizedBox(height: 10),
           Text('Login and registration coming soon.'),
